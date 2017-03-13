@@ -1,0 +1,74 @@
+---
+- hosts: all
+  name: install ghost global dependencies
+  user: ghost
+  become: yes
+  tasks:
+  - name: install unzip
+    apt:
+      name: unzip
+    tags:
+      -apt
+  - name: npm install grunt-cli
+    npm:
+      name: grunt-cli
+      global: yes
+
+- hosts: all
+  vars_files:
+    - ../config.yml
+  name: extract ghost
+  user: ghost
+  tasks:
+  - name: download ghost
+    get_url:
+      url: https://ghost.org/zip/ghost-latest.zip
+      dest: "{{ ghost.home }}/ghost.zip"
+  - name: create ghost directory
+    file:
+      path: "{{ ghost.path }}"
+      state: directory
+  - name: extract ghost
+    unarchive:
+      src: "{{ ghost.home }}/ghost.zip"
+      dest: "{{ ghost.path }}"
+      remote_src: yes
+  - name: install ghost config
+    template:
+      src: ../etc/ghost-config.js
+      dest: "{{ ghost.path }}/config.js"
+  - name: install themes
+    git:
+      repo: "{{ item }}"
+      dest: "{{ ghost.path }}/content/themes/{{ item | basename }}"
+      version: master
+    with_items: "{{ ghost.themes }}"
+
+- hosts: all
+  user: ghost
+  name: install ghost dependencies
+  vars_files:
+    - ../config.yml
+  tasks:
+  - name: install npm deps
+    npm:
+      path: "{{ ghost.path }}"
+      production: yes
+
+- hosts: all
+  user: ghost
+  become: yes
+  name: install and start ghost service
+  vars_files:
+    - ../config.yml
+  tasks:
+  - name: install ghost service
+    template:
+      src: ../etc/ghost.conf
+      dest: /etc/init.d/ghost
+      mode: "0755"
+  - name: restart ghost
+    service:
+      name: ghost
+      state: restarted
+      enabled: yes

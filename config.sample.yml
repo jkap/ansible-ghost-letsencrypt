@@ -1,0 +1,13 @@
+---
+server_name: example.com
+install_digital_ocean_agent: yes
+letsencrypt:
+  email: hi@example.com
+node_version: 6.x
+ghost:
+  themes:
+  - https://github.com/JonathanSpeek/spacegrid_ghost_theme.git
+  home: /home/ghost
+  path: /home/ghost/ghost"
+  host: 127.0.0.1
+  port: 2368

@@ -1,0 +1,22 @@
+---
+- hosts: all
+  user: root
+  vars_files:
+    - ../config.yml
+  name: "create ghost user and setup keys"
+  tasks:
+  - name: create ghost user
+    user:
+      name: ghost
+      shell: /bin/bash
+      groups: sudo
+      home: "{{ ghost.home }}"
+  - name: add authorized_key
+    authorized_key:
+      user: ghost
+      key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+  - name: give sudo group nopasswd
+    lineinfile:
+      dest: /etc/sudoers
+      regexp: '^%sudo'
+      line: '%sudo ALL=(ALL) NOPASSWD: ALL'

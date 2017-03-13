@@ -1,0 +1,53 @@
+---
+# ensure python is on the server
+- include: plays/init.yml
+
+# setup ghost user
+- include: plays/user.yml
+
+# install Digital Ocean agent (if enabled)
+- include: plays/digital_ocean_agent.yml
+
+- include: plays/install_node.yml
+
+- include: plays/install_ghost.yml
+
+- hosts: all
+  name: setup letsencrypt certificates
+  user: root
+  vars_files:
+    - config.yml
+  roles:
+    - role: thefinn93.letsencrypt
+      letsencrypt_email: "{{ letsencrypt.email }}"
+      letsencrypt_cert_domains:
+        - "{{ server_name }}"
+      letsencrypt_renewal_command_args: '--renew-hook "service nginx restart"'
+- hosts: all
+  name: install nginx
+  user: root
+  vars_files:
+    - config.yml
+  vars:
+    ghost_internal_url: http://{{ ghost.host }}:{{ ghost.port }}
+  roles:
+    - role: jdauphant.nginx
+      nginx_sites:
+        ghost:
+          - listen 80 default_server
+          - listen [::]:80 default_server
+          - server_name "{{ server_name }}"
+          - location ^~ /.well-known/acme-challenge/ { default_type "text/plain"; root /var/www; }
+          - return 301 https://$server_name$request_uri
+        ghost_ssl:
+          - listen 443 ssl http2 default_server
+          - listen [::]:443 ssl http2 default_server
+          - ssl_certificate /etc/letsencrypt/live/{{ server_name }}-0001/fullchain.pem
+          - ssl_certificate_key /etc/letsencrypt/live/{{ server_name }}-0001/privkey.pem
+          - server_name "{{ server_name }}"
+          - proxy_set_header X-Real-IP $remote_addr
+          - proxy_set_header HOST $http_host
+          - proxy_set_header X-NginX-Proxy true
+          - proxy_set_header X-Forwarded-Proto $scheme
+          - location ^~ /.well-known/acme-challenge/ { default_type "text/plain"; root /var/www; }
+          - location / { proxy_pass {{ ghost_internal_url }}; proxy_redirect off; }

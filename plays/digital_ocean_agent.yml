@@ -1,0 +1,26 @@
+---
+- hosts: all
+  vars_files:
+  - ../config.yml
+  name: setup digital ocean agent
+  user: ghost
+  become: yes
+  tasks:
+    - name: setup DO agent apt key
+      apt_key:
+        url: https://repos.sonar.digitalocean.com/sonar-agent.asc
+      tags:
+        - apt
+      when: install_digital_ocean_agent
+    - name: setup DO agent repo
+      apt_repository:
+        repo: deb https://repos.sonar.digitalocean.com/apt main main
+      tags:
+        - apt
+      when: install_digital_ocean_agent
+    - name: install DO agent
+      apt:
+        name: do-agent
+      tags:
+        - apt
+      when: install_digital_ocean_agent

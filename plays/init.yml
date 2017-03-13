@@ -1,0 +1,10 @@
+---
+- hosts: all
+  name: ensure python
+  user: root
+  gather_facts: no
+  tasks:
+    - name: ensure python
+      raw: apt update && apt install python-minimal -y
+      args:
+        executable: /bin/bash
